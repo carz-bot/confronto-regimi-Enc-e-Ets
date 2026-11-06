@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Confronto IRES + IRAP per regime</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f5f7f9; --panel:#ffffff; --ink:#14212b; --muted:#5b6b78; --line:#d5dde3;
+  --ires:#1f6f78; --irap:#c98a1b; --best:#1f6f78;
+  font-family:Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f171d; --panel:#17222a; --ink:#e6edf1; --muted:#98a8b3; --line:#2c3b46;
+    --ires:#4fb3bd; --irap:#e0a94a; --best:#4fb3bd;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f171d; --panel:#17222a; --ink:#e6edf1; --muted:#98a8b3; --line:#2c3b46;
+  --ires:#4fb3bd; --irap:#e0a94a; --best:#4fb3bd;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;line-height:1.2;margin:0 0 6px}
+h2{font-size:1.1rem;margin:28px 0 10px}
+p.sub{margin:0 0 20px;color:var(--muted);font-size:.95rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+input{width:100%;font:inherit;font-size:1rem;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
+input:focus-visible{outline:2px solid var(--ires);outline-offset:1px}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:560px}
+th,td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{font-weight:600;color:var(--muted);font-size:.82rem}
+td.tot{font-weight:700}
+tr.best td.tot{color:var(--best)}
+.bars{display:grid;gap:14px}
+.row .name{display:flex;justify-content:space-between;gap:12px;font-size:.92rem;margin-bottom:4px}
+.track{display:flex;height:22px;background:var(--bg);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg{height:100%;min-width:0;transition:width .25s}
+.seg.i{background:var(--ires)} .seg.r{background:var(--irap)}
+.legend{display:flex;gap:16px;font-size:.85rem;color:var(--muted);margin-top:10px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+ul.notes{padding-left:18px;margin:0;font-size:.9rem;color:var(--muted)}
+ul.notes li{margin-bottom:6px}
+@media (prefers-reduced-motion:reduce){.seg{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Quanto costa ogni regime, tra IRES e IRAP</h1>
+  <p class="sub">Confronto illustrativo per un ente con ricavi commerciali da servizi. Modifica i valori e i risultati si aggiornano.</p>
+
+  <div class="panel grid" id="inputs">
+    <div><label for="ricavi">Ricavi commerciali (€)</label><input id="ricavi" type="number" min="0" step="100" value="15000"></div>
+    <div><label for="occ">Prestazioni occasionali (€)</label><input id="occ" type="number" min="0" step="100" value="10000"></div>
+    <div><label for="fatt">Fatture artisti con P.IVA (€)</label><input id="fatt" type="number" min="0" step="100" value="5000"></div>
+    <div><label for="ires">Aliquota IRES (%)</label><input id="ires" type="number" min="0" step="0.1" value="24"></div>
+    <div><label for="irap">Aliquota IRAP Veneto (%)</label><input id="irap" type="number" min="0" step="0.01" value="3.9"></div>
+  </div>
+
+  <h2>Esercizio 2025/26 (1 ottobre 2025 – 30 settembre 2026)</h2>
+  <div class="panel"><p style="margin:0" id="old"></p></div>
+
+  <h2>Esercizio 2026/27 (dal 1 ottobre 2026): risultato per regime</h2>
+  <div class="panel wrap">
+    <table>
+      <thead><tr><th>Regime</th><th>Reddito</th><th>IRES</th><th>Base IRAP</th><th>IRAP</th><th>Totale</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <h2>Composizione del totale</h2>
+  <div class="panel">
+    <div class="bars" id="bars"></div>
+    <div class="legend"><span><span class="dot" style="background:var(--ires)"></span>IRES</span><span><span class="dot" style="background:var(--irap)"></span>IRAP</span></div>
+  </div>
+
+  <h2>Ipotesi e limiti</h2>
+  <ul class="notes">
+    <li>Decorrenza: per un esercizio dal 1 ottobre al 30 settembre, i corsi diventano commerciali ai fini IRES dall'esercizio che inizia il 1 ottobre 2026. Nel 2025/26 la base IRAP è stimata come compensi occasionali, da verificare.</li>
+    <li>Tutti i costi sono riferibili all'attività commerciale, senza ripartizione dei costi promiscui (art. 144 TUIR).</li>
+    <li>Regime ordinario o semplificato: reddito = ricavi meno costi. Base IRAP = ricavi meno fatture, perché le prestazioni occasionali sono indeducibili.</li>
+    <li>Regimi forfetari: base IRAP = reddito forfetario più prestazioni occasionali. Regola confermata per l'art. 145 e applicata per analogia agli artt. 80 e 86 CTS, da verificare.</li>
+    <li>Coefficienti: art. 145 TUIR 15%, art. 80 CTS 7%, art. 86 CTS 3% per le APS iscritte al RUNTS.</li>
+    <li>In Veneto gli ETS iscritti al RUNTS non risultano avere esenzioni IRAP: verificare la normativa regionale vigente.</li>
+    <li>Informazioni generali, non consulenza fiscale: la scelta del regime va fatta con un commercialista.</li>
+  </ul>
+</main>
+
+<script>
+const REGIMI = [
+  {nome:"Non iscritta, forfetario art. 145 TUIR (15%)", c:0.15},
+  {nome:"ETS, forfetario art. 80 CTS (7%)", c:0.07},
+  {nome:"APS iscritta, forfetario art. 86 CTS (3%)", c:0.03},
+  {nome:"Ordinario / semplificato", c:null}
+];
+const fmt = n => new Intl.NumberFormat("it-IT",{maximumFractionDigits:0}).format(Math.round(n));
+const val = id => Math.max(parseFloat(document.getElementById(id).value)||0,0);
+
+function calcola(){
+  const ricavi=val("ricavi"), occ=val("occ"), fatt=val("fatt");
+  const ires=val("ires")/100, irap=val("irap")/100;
+  const costi=occ+fatt;
+  return REGIMI.map(r=>{
+    let reddito, base;
+    if(r.c===null){ reddito=Math.max(ricavi-costi,0); base=Math.max(ricavi-fatt,0); }
+    else { reddito=ricavi*r.c; base=reddito+occ; }
+    const i=reddito*ires, p=base*irap;
+    return {nome:r.nome,reddito,i,base,p,tot:i+p};
+  });
+}
+
+function render(){
+  const rows=calcola();
+  const min=Math.min(...rows.map(r=>r.tot));
+  const occ=val("occ"), irapV=val("irap")/100;
+  document.getElementById("old").innerHTML=`Corsi agli associati non commerciali ai fini IRES: <strong>IRES 0 €</strong>. IRAP stimata <strong>${fmt(occ*irapV)} €</strong> sulle prestazioni occasionali (base ${fmt(occ)} €). Totale <strong>${fmt(occ*irapV)} €</strong>.`;
+  const max=Math.max(...rows.map(r=>r.tot),1);
+  document.getElementById("tbody").innerHTML=rows.map(r=>
+    `<tr class="${r.tot===min?"best":""}"><td>${r.nome}</td><td>${fmt(r.reddito)}</td><td>${fmt(r.i)}</td><td>${fmt(r.base)}</td><td>${fmt(r.p)}</td><td class="tot">${fmt(r.tot)}</td></tr>`
+  ).join("");
+  document.getElementById("bars").innerHTML=rows.map(r=>
+    `<div class="row"><div class="name"><span>${r.nome}</span><strong>${fmt(r.tot)} €</strong></div>
+     <div class="track" role="img" aria-label="IRES ${fmt(r.i)} euro, IRAP ${fmt(r.p)} euro">
+       <div class="seg i" style="width:${r.i/max*100}%"></div><div class="seg r" style="width:${r.p/max*100}%"></div>
+     </div></div>`
+  ).join("");
+}
+document.querySelectorAll("#inputs input").forEach(el=>el.addEventListener("input",render));
+render();
+</script>
+</body>
+</html>
